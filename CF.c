@@ -176,16 +176,11 @@ void cfNextGeneration(CF this, Generation g){
 void cfDeleteGeneration(Generation g){
 
   int i;
-  for(i = 0; i < cfCOLUMNS; i++) {
-
-    /*    int k;
-    for(k = 0; k < cfROWS; k++) {
-      cfDeleteCFptr(g[i]);
-    }*/
-
-    /*TODO: Clear board rows and g[i]'s*/
-
-    free(&(g[i]->board));
+  for(i=0; i<cfCOLUMNS; i++) {
+    if(g[i] != NULL) {
+      free(g[i]->board);
+      free(g[i]);
+    }
   }
   free(g);
 }
