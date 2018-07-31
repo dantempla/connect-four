@@ -19,15 +19,15 @@ if(p == None) {
 CF cfNewCF(){
   int i, row, col;
   CF cf;
-  Player **board = malloc(cfROWS*sizeof(Player*));
-  for(i = 0; i < cfROWS; i++) {
-    board[i] = malloc(cfCOLUMNS*sizeof(Player));
+  Player **board = malloc(cfCOLUMNS*sizeof(Player*));
+  for(i = 0; i < cfCOLUMNS; i++) {
+    board[i] = malloc(cfROWS*sizeof(Player));
   }
 
   /* fill board with empty Nones */
   for(row = 0; row < cfROWS; row++) {
     for(col = 0; col < cfCOLUMNS; col++) {
-      board[row][col] = None;
+      board[col][row] = None;
     }
   }
 
@@ -44,7 +44,7 @@ CF cfNewCF(){
 void cfDeleteCF(CF this){
   int i;
   
-  for(i = 0; i < cfROWS; i++) {
+  for(i = 0; i < cfCOLUMNS; i++) {
     free(this.board[i]);
   }
   free(this.board);
@@ -66,20 +66,20 @@ void cfShowCFIn(CF this,char* result){
   int column;
   int cfStringPos = 0;
 
-  for(row = 0; row < cfROWS; row++) {
+  for(row = cfROWS-1; row >= 0; row--) {
     for(column = 0; column < cfCOLUMNS; column++) {
 
       result[cfStringPos++] = '|';
 
-      if(this.board[row][column] == None) {
+      if(this.board[column][row] == None) {
         result[cfStringPos++] = ' ';
       }
 
-      if(this.board[row][column] == One) {
+      if(this.board[column][row] == One) {
         result[cfStringPos++] = 'O';
       }
 
-      if(this.board[row][column] == Two) {
+      if(this.board[column][row] == Two) {
         result[cfStringPos++] = 'X';
       }
 
@@ -100,16 +100,16 @@ bool cfIsMove(CF this,unsigned int m){
 
   /* If there is still a free frow in a column, return true */
   for(column = 0; column < cfCOLUMNS; column++) {
-    if(m == column) {
+    if(m-1 == column) {
       for(row = cfROWS-1; row >= 0; row--) {
-        if(this.board[row][column] == None) {
+        if(this.board[m-1][row] == None) {
           return true;
         }
       }
     }
   }
 
-  /* If no column 0-6 has a free row (None), return false*/
+  /* If no column 0-6 (1-7) has a free row (None), return false*/
   return false;
 }
 
@@ -122,20 +122,20 @@ CF cfMakeMove(CF this,unsigned int m) {
   /* copy the board */
   for(row = 0; row < cfROWS; row++) {
     for(col = 0; col < cfCOLUMNS; col++) {
-      copy.board[row][col] = this.board[row][col];
+      copy.board[col][row] = this.board[col][row];
     }
   }
   copy.currentPlayer = this.currentPlayer;
   copy.movesDone = this.movesDone;
 
   for(col = 0; col < cfCOLUMNS; col++) {
-    if(m == col) {
-      for(row = cfROWS-1; row >= 0; row--) {
-        if(copy.board[row][m] == None) {
+    if(m-1 == col) {
+      for(row = 0; row < cfROWS; row++) {
+        if(copy.board[m-1][row] == None) {
           copy.lastRow = row;
-          copy.lastColumn = col; /* or m */
+          copy.lastColumn = m - 1; /* or m */
           copy.movesDone += 1;
-          copy.board[row][col] = copy.currentPlayer;
+          copy.board[m-1][row] = copy.currentPlayer;
 
           copy.currentPlayer = cfNextPlayer(copy.currentPlayer);
           return copy;
@@ -163,11 +163,11 @@ Generation cfMkNextGeneration(CF this ){
 void cfNextGeneration(CF this, Generation g){
   int i;
 
-  for(i = 0; i < cfCOLUMNS; i++) {
+  for(i = 1; i <= cfCOLUMNS; i++) {
     if(cfIsMove(this, i)) {
-     *g[i] = cfMakeMove(this,i);
+     *g[i-1] = cfMakeMove(this,i);
     } else {
-      g[i] = NULL;
+      g[i-1] = NULL;
     }
   }
 }
@@ -191,8 +191,8 @@ bool horizontalCheck(CF this) {
 
   for(row = 0; row < cfROWS; row++) {
     for(col = 0; col < cfCOLUMNS-3; col++) {
-      if((this.board[row][col] != None) && (this.board[row][col] == this.board[row][col+1]) && (this.board[row][col] == this.board[row][col+2])
-        && (this.board[row][col] == this.board[row][col+3])) {
+      if((this.board[col][row] != None) && (this.board[col][row] == this.board[col+1][row]) && (this.board[col][row] == this.board[col+2][row])
+        && (this.board[col][row] == this.board[col+3][row])) {
         return true;
       }
     }
@@ -209,32 +209,32 @@ int horizontalCheckPotential(CF this, Player p) {
   for(row = 0; row < cfROWS; row++) {
     for(col = 0; col < cfCOLUMNS-3; col++) {
       /* _ _ O O */
-      if((this.board[row][col+2] == p)
-        && (this.board[row][col] == None) && (this.board[row][col+1] == None) && (this.board[row][col+2] == this.board[row][col+3])) {
+      if((this.board[col+2][row] == p)
+        && (this.board[col][row] == None) && (this.board[col+1][row] == None) && (this.board[col+2][row] == this.board[col+3][row])) {
         value += 10;
       }
       /* _ O O _ */
-       if((this.board[row][col+1] == p)
-        && (this.board[row][col] == None) && (this.board[row][col+1] == this.board[row][col+2]) 
-        && (this.board[row][col+3] == None)) {
+       if((this.board[col+1][row] == p)
+        && (this.board[col][row] == None) && (this.board[col+1][row] == this.board[col+2][row]) 
+        && (this.board[col+3][row] == None)) {
         value += 10;
       }
       /* O O _ _ */
-       if((this.board[row][col] == p)
-        && (this.board[row][col] == this.board[row][col+1]) && (this.board[row][col+2] == None) 
-        && (this.board[row][col+3] == None)) {
+       if((this.board[col][row] == p)
+        && (this.board[col][row] == this.board[col+1][row]) && (this.board[col+2][row] == None) 
+        && (this.board[col+3][row] == None)) {
         value += 10;
       }
       /* _  O O O */
-       if((this.board[row][col+1] == p)
-        && (this.board[row][col] == None) && (this.board[row][col+1] == this.board[row][col+2])
-        && (this.board[row][col+2] == this.board[row][col+3])) {
+       if((this.board[col+1][row] == p)
+        && (this.board[col][row] == None) && (this.board[col+1][row] == this.board[col+2][row])
+        && (this.board[col+2][row] == this.board[col+3][row])) {
         value += 100;
       }
       /* O O O _ */
-       if((this.board[row][col] == p)
-        && (this.board[row][col] == this.board[row][col+1]) && (this.board[row][col+1] == this.board[row][col+2])
-        && (this.board[row][col+2] == None)) {
+       if((this.board[col][row] == p)
+        && (this.board[col][row] == this.board[col+1][row]) && (this.board[col+1][row] == this.board[col+2][row])
+        && (this.board[col+2][row] == None)) {
         value += 100;
       }
 
@@ -250,8 +250,8 @@ bool verticalCheck(CF this) {
 
   for(row = 0; row < cfROWS-3; row++) {
     for(col = 0; col < cfCOLUMNS; col++) {
-      if((this.board[row][col] != None) && (this.board[row][col] == this.board[row+1][col]) && (this.board[row][col] == this.board[row+2][col])
-        && (this.board[row][col] == this.board[row+3][col])) {
+      if((this.board[col][row] != None) && (this.board[col][row] == this.board[col][row+1]) && (this.board[col][row] == this.board[col][row+2])
+        && (this.board[col][row] == this.board[col][row+3])) {
         return true;
       }
     }
@@ -268,32 +268,32 @@ int verticalCheckPotential(CF this, Player p) {
   for(row = 0; row < cfROWS-3; row++) {
     for(col = 0; col < cfCOLUMNS; col++) {
       /* _ _ O O */
-      if((this.board[row+2][col] == p)
-        && (this.board[row][col] == None) && (this.board[row+1][col] == None) && (this.board[row+2][col] == this.board[row+3][col])) {
+      if((this.board[col][row+2] == p)
+        && (this.board[col][row] == None) && (this.board[col][row+1] == None) && (this.board[col][row+2] == this.board[col][row+3])) {
         value += 10;
       }
       /* _ O O _ */
-       if((this.board[row+1][col] == p)
-        && (this.board[row][col] == None) && (this.board[row+1][col] == this.board[row+2][col]) 
-        && (this.board[row+3][col] == None)) {
+       if((this.board[col][row+1] == p)
+        && (this.board[col][row] == None) && (this.board[col][row+1] == this.board[col][row+2]) 
+        && (this.board[col][row+3] == None)) {
         value += 10;
       }
       /* O O _ _ */
-       if((this.board[row][col] == p)
-        && (this.board[row][col] == this.board[row+1][col]) && (this.board[row+2][col] == None) 
-        && (this.board[row+3][col] == None)) {
+       if((this.board[col][row] == p)
+        && (this.board[col][row] == this.board[col][row+1]) && (this.board[col][row+2] == None) 
+        && (this.board[col][row+3] == None)) {
         value += 10;
       }
       /* _  O O O */
-       if((this.board[row+1][col] == p)
-        && (this.board[row][col] == None) && (this.board[row+1][col] == this.board[row+2][col])
-        && (this.board[row+2][col] == this.board[row+3][col])) {
+       if((this.board[col][row+1] == p)
+        && (this.board[col][row] == None) && (this.board[col][row+1] == this.board[col][row+2])
+        && (this.board[col][row+2] == this.board[col][row+3])) {
         value += 100;
       }
       /* O O O _ */
-       if((this.board[row][col] == p)
-        && (this.board[row][col] == this.board[row+1][col]) && (this.board[row+1][col] == this.board[row+2][col])
-        && (this.board[row+3][col] == None)) {
+       if((this.board[col][row] == p)
+        && (this.board[col][row] == this.board[col][row+1]) && (this.board[col][row+1] == this.board[col][row+2])
+        && (this.board[col][row+3] == None)) {
         value += 100;
       }
     }
@@ -309,19 +309,19 @@ bool diagonalCheck(CF this) {
   /* diagonal bottom right */
   for (col = 0; col <= 3; col++) {
     for (row = 0; row <= 2; row++) {
-        if ((this.board[row][col] != None) &&
-           (this.board[row][col] == this.board[row+1][col+1]) &&
-           (this.board[row][col] == this.board[row+2][col+2]) &&
-           (this.board[row][col] == this.board[row+3][col+3]))
+        if ((this.board[col][row] != None) &&
+           (this.board[col][row] == this.board[col+1][row+1]) &&
+           (this.board[col][row] == this.board[col+2][row+2]) &&
+           (this.board[col][row] == this.board[col+3][row+3]))
                return true;
     }
 
     /* diagonal top right */
     for (row = 3; row <= 5; row++) {
-        if ((this.board[row][col] != None) &&
-           (this.board[row][col] == this.board[row-1][col+1]) &&
-           (this.board[row][col] == this.board[row-2][col+2]) &&
-           (this.board[row][col] == this.board[row-3][col+3]))
+        if ((this.board[col][row] != None) &&
+           (this.board[col][row] == this.board[col+1][row-1]) &&
+           (this.board[col][row] == this.board[col+2][row-2]) &&
+           (this.board[col][row] == this.board[col+3][row-3]))
                return true;
     }
   }
@@ -339,76 +339,76 @@ int diagonalCheckPotential(CF this, Player p) {
   for (col = 0; col <= 3; col++) {
     for (row = 0; row <= 2; row++) {
         /* _ _ O O */
-        if ((this.board[row+2][col+2] == p)
-        && (this.board[row][col] == None) &&
-           (this.board[row+1][col+1] == None) &&
-           (this.board[row+2][col+2] == this.board[row+3][col+3]))
+        if ((this.board[col+2][row+2] == p)
+        && (this.board[col][row] == None) &&
+           (this.board[col+1][row+1] == None) &&
+           (this.board[col+2][row+2] == this.board[col+3][row+3]))
                value += 10;
 
         /* _ O O _ */
-         if ((this.board[row+1][col+1] == p)
-        && (this.board[row][col] == None) &&
-           (this.board[row+1][col+1] == this.board[row+2][col+2]) &&
-           (this.board[row+3][col+3] == None))
+         if ((this.board[col+1][row+1] == p)
+        && (this.board[col][row] == None) &&
+           (this.board[col+1][row+1] == this.board[col+2][row+2]) &&
+           (this.board[col+3][row+3] == None))
                value += 10;
 
         /* O O _ _ */
-         if ((this.board[row][col] == p)
-        && (this.board[row][col] == this.board[row+1][col+1]) &&
-           (this.board[row+2][col+2] == None) &&
-           (this.board[row+3][col+3] == None))
+         if ((this.board[col][row] == p)
+        && (this.board[col][row] == this.board[col+1][row+1]) &&
+           (this.board[col+2][row+2] == None) &&
+           (this.board[col+3][row+3] == None))
                value += 10;
 
         /* O O O _ */
-         if ((this.board[row][col] == p)
-        && (this.board[row][col] == this.board[row+1][col+1]) &&
-           (this.board[row+1][col+1] == this.board[row+2][col+2]) &&
-           (this.board[row+3][col+3] == None))
+         if ((this.board[col][row] == p)
+        && (this.board[col][row] == this.board[col+1][row+1]) &&
+           (this.board[col+1][row+1] == this.board[col+2][row+2]) &&
+           (this.board[col+3][row+3] == None))
                value += 100;
 
         /* _ O O O */
-         if ((this.board[row+1][col+1] == p)
-        && (this.board[row][col] == None) &&
-           (this.board[row+1][col+1] == this.board[row+2][col+2]) &&
-           (this.board[row+2][col+2] == this.board[row+3][col+3]))
+         if ((this.board[col+1][row+1] == p)
+        && (this.board[col][row] == None) &&
+           (this.board[col+1][row+1] == this.board[col+2][row+2]) &&
+           (this.board[col+2][row+2] == this.board[col+3][row+3]))
                value += 100;
     }
 
     /* diagonal top right */
     for (row = 3; row <= 5; row++) {
         /* _ _ O O */
-        if ((this.board[row-2][col+2] == p)
-        && (this.board[row][col] == None) &&
-           (this.board[row-1][col+1] == None) &&
-           (this.board[row-2][col+2] == this.board[row-3][col+3]))
+        if ((this.board[col+2][row-2] == p)
+        && (this.board[col][row] == None) &&
+           (this.board[col+1][row-1] == None) &&
+           (this.board[col+2][row-2] == this.board[col+3][row-3]))
                value += 10;
 
         /* _ O O _ */
-         if ((this.board[row-1][col+1] == p)
-        && (this.board[row][col] == None) &&
-           (this.board[row-1][col+1] == this.board[row-2][col+2]) &&
-           (this.board[row-3][col+3] == None))
+         if ((this.board[col+1][row-1] == p)
+        && (this.board[col][row] == None) &&
+           (this.board[col+1][row-1] == this.board[col+2][row-2]) &&
+           (this.board[col+3][row-3] == None))
                value += 10;
 
         /* O O _ _ */
-         if ((this.board[row][col] == p)
-        && (this.board[row][col] == this.board[row-1][col+1]) &&
-           (this.board[row-2][col+2] == None) &&
-           (this.board[row-3][col+3] == None))
+         if ((this.board[col][row] == p)
+        && (this.board[col][row] == this.board[col+1][row-1]) &&
+           (this.board[col+2][row-2] == None) &&
+           (this.board[col+3][row-3] == None))
                value += 10;
 
         /* O O O _ */
-         if ((this.board[row][col] == p)
-        && (this.board[row][col] == this.board[row-1][col+1]) &&
-           (this.board[row-1][col+1] == this.board[row-2][col+2]) &&
-           (this.board[row-3][col+3] == None))
+         if ((this.board[col][row] == p)
+        && (this.board[col][row] == this.board[col+1][row-1]) &&
+           (this.board[col+1][row-1] == this.board[col+2][row-2]) &&
+           (this.board[col+3][row-3] == None))
                value += 100;
 
         /* _ O O O */
-         if ((this.board[row-1][col+1] == p)
-        && (this.board[row][col] == None) &&
-           (this.board[row-1][col+1] == this.board[row-2][col+2]) &&
-           (this.board[row-2][col+2] == this.board[row-3][col+3]))
+         if ((this.board[col+1][row-1] == p)
+        && (this.board[col][row] == None) &&
+           (this.board[col+1][row-1] == this.board[col+2][row-2]) &&
+           (this.board[col+2][row-2] == this.board[col+3][row-3]))
                value += 100;
     }
   }
@@ -428,7 +428,7 @@ bool cfFinished(CF this){
 
   for(row = 0; row < cfROWS; row++) {
     for(column = 0; column < cfCOLUMNS; column++) {
-      if(this.board[row][column] == None)
+      if(this.board[column][row] == None)
         return false;
     }
   }

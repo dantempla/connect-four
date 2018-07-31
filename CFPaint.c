@@ -23,11 +23,11 @@ void cfPaintToBmp(CF game,Bmp* b){
   for(row=cfROWS-1; row>=0; row--) {
     for(col=0; col<cfCOLUMNS; col++) {
     	
-      if(game.board[row][col] == One) { /* Player One = RED */
+      if(game.board[col][row] == One) { /* Player One = RED */
 
         bmpFillCircle(b, RED, 30+col*60, row*60+30, 30);
 
-      } else if(game.board[row][col] == Two) { /* Player Two = WHITE */
+      } else if(game.board[col][row] == Two) { /* Player Two = WHITE */
 
         bmpFillCircle(b, WHITE, 30+col*60, row*60+30, 30);
 
